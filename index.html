@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Studio</title>
+    
+    <!-- Marked.js 解析器 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js 程式碼高亮 (GitHub Dark 主題) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- KaTeX 數學公式支援 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    
+    <!-- Font Awesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --accent-color: #2f81f7;
+            --hover-color: #1f6feb;
+            --muted-color: #8b949e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 頂部導覽列 */
+        header {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 50px;
+        }
+
+        .brand {
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 捷徑快捷工具列 */
+        .toolbar {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 4px 16px;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            overflow-x: auto;
+        }
+
+        .toolbar-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .toolbar-btn:hover {
+            background-color: var(--border-color);
+        }
+
+        .separator {
+            width: 1px;
+            height: 18px;
+            background-color: var(--border-color);
+            margin: 0 4px;
+        }
+
+        /* 按鈕樣式 */
+        button.btn {
+            background-color: #21262d;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s ease;
+        }
+
+        button.btn:hover {
+            background-color: var(--border-color);
+        }
+
+        button.btn-primary {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
+        }
+
+        button.btn-primary:hover {
+            background-color: var(--hover-color);
+        }
+
+        /* 主工作區 */
+        main {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 85px);
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 50%;
+            position: relative;
+        }
+
+        .pane-header {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 6px 16px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted-color);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #editor {
+            flex: 1;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: none;
+            border-right: 1px solid var(--border-color);
+            padding: 16px;
+            font-family: 'Fira Code', Consolas, Monaco, monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            overflow-y: auto;
+        }
+
+        #preview {
+            flex: 1;
+            padding: 24px 32px;
+            overflow-y: auto;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+        }
+
+        /* 預覽區 Markdown 排版優化 */
+        #preview h1, #preview h2, #preview h3, #preview h4 {
+            margin-top: 1.4em;
+            margin-bottom: 0.6em;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
+        }
+
+        #preview p { margin-bottom: 1em; }
+        #preview ul, #preview ol { padding-left: 2em; margin-bottom: 1em; }
+        #preview blockquote {
+            border-left: 4px solid var(--accent-color);
+            padding-left: 12px;
+            color: var(--muted-color);
+            margin: 1em 0;
+        }
+        #preview code:not(pre code) {
+            background-color: rgba(110, 118, 129, 0.4);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        #preview pre {
+            border-radius: 6px;
+            margin: 1em 0;
+            overflow-x: auto;
+        }
+        #preview img { max-width: 100%; height: auto; }
+        #preview table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1em;
+        }
+        #preview th, #preview td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+        }
+        #preview hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 2em 0;
+        }
+
+        /* 響應式排版 */
+        @media (max-width: 768px) {
+            main { flex-direction: column; }
+            .pane { width: 100%; height: 50%; }
+            #editor { border-right: none; border-bottom: 1px solid var(--border-color); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <i class="fa-brands fa-markdown" style="font-size: 1.4rem; color: var(--accent-color);"></i>
+            <span>Markdown Studio</span>
+        </div>
+        <div class="actions">
+            <button class="btn" onclick="clearEditor()"><i class="fa-solid fa-trash-can"></i> 清空</button>
+            <button class="btn btn-primary" onclick="downloadMarkdown()"><i class="fa-solid fa-download"></i> 下載 .md</button>
+        </div>
+    </header>
+
+    <!-- 工具列按鈕 -->
+    <div class="toolbar">
+        <button class="toolbar-btn" onclick="insertText('**', '**')" title="粗體"><i class="fa-solid fa-bold"></i></button>
+        <button class="toolbar-btn" onclick="insertText('*', '*')" title="斜體"><i class="fa-solid fa-italic"></i></button>
+        <button class="toolbar-btn" onclick="insertText('~~', '~~')" title="刪除線"><i class="fa-solid fa-strikethrough"></i></button>
+        <div class="separator"></div>
+        <button class="toolbar-btn" onclick="insertText('# ')" title="標題 1">H1</button>
+        <button class="toolbar-btn" onclick="insertText('## ')" title="標題 2">H2</button>
+        <button class="toolbar-btn" onclick="insertText('### ')" title="標題 3">H3</button>
+        <div class="separator"></div>
+        <button class="toolbar-btn" onclick="insertText('> ')" title="引用區塊"><i class="fa-solid fa-quote-left"></i></button>
+        <button class="toolbar-btn" onclick="insertText('```\n', '\n```')" title="程式碼區塊"><i class="fa-solid fa-code"></i></button>
+        <button class="toolbar-btn" onclick="insertText('- ')" title="無序清單"><i class="fa-solid fa-list-ul"></i></button>
+        <button class="toolbar-btn" onclick="insertText('1. ')" title="有序清單"><i class="fa-solid fa-list-ol"></i></button>
+        <div class="separator"></div>
+        <button class="toolbar-btn" onclick="insertText('[', '](url)')" title="插入連結"><i class="fa-solid fa-link"></i></button>
+        <button class="toolbar-btn" onclick="insertText('![alt](', ')') " title="插入圖片"><i class="fa-solid fa-image"></i></button>
+        <button class="toolbar-btn" onclick="insertText('$$', '$$')" title="LaTeX 數學公式"><i class="fa-solid fa-calculator"></i></button>
+    </div>
+
+    <main>
+        <div class="pane">
+            <div class="pane-header">
+                <span>Markdown 編輯區</span>
+                <span id="char-count">0 字數</span>
+            </div>
+            <textarea id="editor" placeholder="在此輸入 Markdown 語法..."></textarea>
+        </div>
+        <div class="pane">
+            <div class="pane-header">即時預覽</div>
+            <div id="preview"></div>
+        </div>
+    </main>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const charCount = document.getElementById('char-count');
+
+        // 設定 Marked.js 與 Highlight.js 整合
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            breaks: true
+        });
+
+        // 解析 LaTeX 數學公式 ($...$ 與 $$...$$)
+        function renderMath(text) {
+            // 區塊公式 $$...$$
+            text = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+                try {
+                    return katex.renderToString(formula.trim(), { displayMode: true });
+                } catch (e) {
+                    return `<span style="color: red;">[Math Error: ${e.message}]</span>`;
+                }
+            });
+            // 行內公式 $...$
+            text = text.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
+                try {
+                    return katex.renderToString(formula.trim(), { displayMode: false });
+                } catch (e) {
+                    return `<span style="color: red;">[Math Error]</span>`;
+                }
+            });
+            return text;
+        }
+
+        // 預設示範文件
+        const defaultContent = `# 歡迎使用 Markdown Studio
+
+這是一個**完全單一檔案、零後端**的線上 Markdown 編輯器，專為部署於 **GitHub Pages** 設計。
+
+---
+
+## 核心功能示範
+
+### 1. 程式碼高亮
+\`\`\`gdscript
+# Godot GDScript 範例
+extends CharacterBody3D
+
+@export var speed: float = 5.0
+
+func _physics_process(delta: float) -> void:
+    var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+    var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+    if direction:
+        velocity.x = direction.x * speed
+        velocity.z = direction.z * speed
+    else:
+        velocity.x = move_toward(velocity.x, 0, speed)
+        velocity.z = move_toward(velocity.z, 0, speed)
+    move_and_slide()
+\`\`\`
+
+### 2. LaTeX 數學公式
+行內公式： $E = mc^2$
+
+區塊公式：
+$$
+\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+$$
+
+### 3. 表格支援
+| 項目 | 狀態 | 備註 |
+| :--- | :---: | ---: |
+| 即時預覽 | ✅ 完成 | Debounce 渲染 |
+| 自動儲存 | ✅ 完成 | 使用 localStorage |
+| 雙欄同步捲動 | ✅ 完成 | 按比例對齊 |
+
+> 嘗試在左側工具列點擊按鈕或直接修改文字看看吧！
+`;
+
+        // 載入 localStorage 或預設值
+        const savedContent = localStorage.getItem('md_studio_content');
+        editor.value = savedContent !== null ? savedContent : defaultContent;
+
+        // 渲染 Markdown
+        function updatePreview() {
+            const rawText = editor.value;
+            const textWithMath = renderMath(rawText);
+            preview.innerHTML = marked.parse(textWithMath);
+            localStorage.setItem('md_studio_content', rawText);
+            
+            // 更新字數統計
+            charCount.textContent = `${rawText.length} 字數`;
+        }
+
+        // 編輯器輸入 Event Listener
+        editor.addEventListener('input', updatePreview);
+
+        // 快捷鍵插入文字邏輯
+        function insertText(before, after = '') {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = editor.value.substring(start, end);
+            const replacement = before + selectedText + after;
+
+            editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+            editor.focus();
+            editor.setSelectionRange(start + before.length, end + before.length);
+            updatePreview();
+        }
+
+        // 雙欄同步捲動邏輯 (Sync Scroll)
+        let isEditorScrolling = false;
+        let isPreviewScrolling = false;
+
+        editor.addEventListener('scroll', () => {
+            if (isPreviewScrolling) return;
+            isEditorScrolling = true;
+            const percentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+            preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+            setTimeout(() => { isEditorScrolling = false; }, 50);
+        });
+
+        preview.addEventListener('scroll', () => {
+            if (isEditorScrolling) return;
+            isPreviewScrolling = true;
+            const percentage = preview.scrollTop / (preview.scrollHeight - preview.clientHeight);
+            editor.scrollTop = percentage * (editor.scrollHeight - editor.clientHeight);
+            setTimeout(() => { isPreviewScrolling = false; }, 50);
+        });
+
+        // 清空編輯器
+        function clearEditor() {
+            if (confirm('確定要清空所有內容嗎？')) {
+                editor.value = '';
+                updatePreview();
+            }
+        }
+
+        // 下載 .md 檔案
+        function downloadMarkdown() {
+            const blob = new Blob([editor.value], { type: 'text/markdown;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'document.md';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        // 快捷鍵 Ctrl+S / Cmd+S 觸發下載
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                downloadMarkdown();
+            }
+        });
+
+        // 初始化
+        updatePreview();
+    </script>
+</body>
+</html>
