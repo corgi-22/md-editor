@@ -326,22 +326,15 @@
 ## 核心功能示範
 
 ### 1. 程式碼高亮
-\`\`\`gdscript
-# Godot GDScript 範例
-extends CharacterBody3D
+\`\`\`javascript
+// JavaScript 範例：統計每個標籤出現次數
+const tags = ["markdown", "editor", "markdown", "preview"];
+const counts = tags.reduce((map, tag) => {
+  map[tag] = (map[tag] || 0) + 1;
+  return map;
+}, {});
 
-@export var speed: float = 5.0
-
-func _physics_process(delta: float) -> void:
-    var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-    var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
-    if direction:
-        velocity.x = direction.x * speed
-        velocity.z = direction.z * speed
-    else:
-        velocity.x = move_toward(velocity.x, 0, speed)
-        velocity.z = move_toward(velocity.z, 0, speed)
-    move_and_slide()
+console.log(counts); // { markdown: 2, editor: 1, preview: 1 }
 \`\`\`
 
 ### 2. LaTeX 數學公式
