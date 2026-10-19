@@ -286,12 +286,8 @@
         const preview = document.getElementById('preview');
         const charCount = document.getElementById('char-count');
 
-        // 設定 Marked.js 與 Highlight.js 整合
+        // 設定 Marked.js
         marked.setOptions({
-            highlight: function(code, lang) {
-                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                return hljs.highlight(code, { language }).value;
-            },
             breaks: true
         });
 
@@ -364,6 +360,9 @@ $$
             const rawText = editor.value;
             const textWithMath = renderMath(rawText);
             preview.innerHTML = marked.parse(textWithMath);
+            preview.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
             localStorage.setItem('md_studio_content', rawText);
             
             // 更新字數統計
